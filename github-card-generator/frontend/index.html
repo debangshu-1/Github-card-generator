@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Dev Card Generator</title>
+    <!-- Fonts & Scripts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+        }
+        .github-input {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            transition: all 0.2s ease;
+        }
+        .github-input:focus {
+            border-color: #58a6ff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.3);
+        }
+        .glass-card {
+            background: rgba(22, 27, 34, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse-custom {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-6">
+    <div id="root" class="w-full max-w-[600px]"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function App() {
+            const [username, setUsername] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [cardData, setCardData] = useState(null);
+            const [error, setError] = useState('');
+            const [copied, setCopied] = useState(false);
+
+            // Handle both Docker environment and local development
+            const BACKEND_URL = '${BACKEND_URL}' || (window.location.hostname === 'localhost' ? 'http://localhost:8080' : '');
+
+            const generateCard = async () => {
+                if (!username.trim()) return;
+                setLoading(true);
+                setError('');
+                setCardData(null);
+                
+                try {
+                    const response = await fetch(`${BACKEND_URL}/generate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: username.trim() })
+                    });
+                    
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        throw new Error(errData.detail || 'Failed to generate card');
+                    }
+                    
+                    const data = await response.json();
+                    const cardHtmlRes = await fetch(`${BACKEND_URL}/card/${username.trim()}`);
+                    const cardHtml = await cardHtmlRes.text();
+                    
+                    setCardData({
+                        html: cardHtml,
+                        url: `${BACKEND_URL}/card/${username.trim()}`
+                    });
+                } catch (err) {
+                    setError(err.message.includes('not found') ? 'GitHub user not found. Check the spelling and try again!' : err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const copyToClipboard = () => {
+                if (cardData) {
+                    navigator.clipboard.writeText(cardData.url);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                }
+            };
+
+            return (
+                <div className="space-y-8 w-full">
+                    <div className="text-center space-y-2">
+                        <h1 className="text-4xl font-extrabold text-white tracking-tight">GitHub Dev Card Generator</h1>
+                        <p className="text-gray-400 text-lg">Enter any public GitHub username</p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <input 
+                            type="text" 
+                            placeholder="e.g. torvalds"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && generateCard()}
+                            className="github-input flex-1 px-4 py-3 rounded-lg text-white font-medium outline-none"
+                        />
+                        <button 
+                            onClick={generateCard}
+                            disabled={loading}
+                            className="bg-[#238636] hover:bg-[#2ea043] disabled:bg-[#238636]/50 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center min-w-[140px]"
+                        >
+                            {loading ? (
+                                <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            ) : 'Generate Card'}
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-900/20 border border-red-500/50 text-red-200 p-4 rounded-lg text-center font-medium">
+                            {error}
+                        </div>
+                    )}
+
+                    {loading && (
+                        <div className="space-y-4 animate-pulse-custom">
+                            <div className="h-[300px] w-full bg-[#161b22] rounded-2xl border border-gray-800"></div>
+                        </div>
+                    )}
+
+                    {cardData && (
+                        <div className="fade-in space-y-6">
+                            <div className="flex justify-center">
+                                <div className="inline-block rounded-2xl overflow-hidden shadow-2xl" dangerouslySetInnerHTML={{ __html: cardData.html }} />
+                            </div>
+                            
+                            <div className="flex justify-center gap-4">
+                                <button 
+                                    onClick={copyToClipboard}
+                                    className="flex items-center gap-2 bg-[#21262d] hover:bg-[#30363d] border border-[#30363d] text-[#58a6ff] px-5 py-2.5 rounded-full font-semibold transition-colors"
+                                >
+                                    {copied ? 'Copied!' : 'Share Link'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <footer className="pt-12 text-center text-gray-500 text-sm font-medium">
+                        Built with Gemini 2.5 Flash, ADK & MCP
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
