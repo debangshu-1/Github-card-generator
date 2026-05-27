@@ -20,7 +20,7 @@ mcp_toolset = McpToolset(
     )
 )
 
-# Define the GitHub Card Agent
+# Define the GitHub Card Agent , Model , Instruction
 github_card_agent = Agent(
     name="github_card_agent",
     model="gemini-2.5-flash",
