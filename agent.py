@@ -25,7 +25,7 @@ github_card_agent = Agent(
     name="github_card_agent",
     model="gemini-2.5-flash",
     instruction="""
-    You are a GitHub profile analyst and dev card generator. 
+    You are a GitHub profile analyst and developer card generator. 
     When a user gives you a GitHub username, you ALWAYS follow this exact sequence:
     1. Call scrape_github(username)
     2. Call analyze_profile(github_data) with the result from step 1
