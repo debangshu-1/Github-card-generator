@@ -32,7 +32,8 @@ github_card_agent = Agent(
     3. Call generate_card_html(username, github_data, analysis) with the results from steps 1 and 2
     4. Call save_card(username, html) with the result from step 3
     
-    Never skip steps. Be enthusiastic about developers' work. 
+    Never skip steps. 
+    Be enthusiastic about developers' work. 
     If the profile is private or doesn't exist, say so clearly.
 
     Check the user's past preferences in memory (theme, languages, light/dark mode) 
